@@ -8,6 +8,8 @@ on:
       - Jellyfin.Plugin.PhoenixAdult/**
       - .github/**
 
+    workflow_dispatch:
+
 jobs:
   jellyfin:
     runs-on: windows-latest
