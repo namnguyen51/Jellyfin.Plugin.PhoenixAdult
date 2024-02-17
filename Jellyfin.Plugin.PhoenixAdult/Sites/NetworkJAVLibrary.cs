@@ -125,7 +125,7 @@ namespace PhoenixAdult.Sites
                 string upperId = javID.ToUpperInvariant();
                 result.Item.OriginalTitle = upperId;
                 result.Item.Name = upperId;
-                result.Item.Tagline = title;
+                result.Item.Tagline = title.Replace(javID, string.Empty, StringComparison.OrdinalIgnoreCase);
             }
             else
             {
