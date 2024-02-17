@@ -59,12 +59,7 @@ namespace PhoenixAdult.Sites
                             scenePoster = $"http:{scenePoster}";
                         }
 
-                        var res = new RemoteSearchResult
-                        {
-                            ProviderIds = { { Plugin.Instance.Name, curID } },
-                            Name = $"{javID} {sceneName}",
-                            ImageUrl = scenePoster,
-                        };
+                        var res = new RemoteSearchResult { ProviderIds = { { Plugin.Instance.Name, curID } }, Name = $"{javID} {sceneName}", ImageUrl = scenePoster, };
 
                         if (!string.IsNullOrEmpty(searchJAVID))
                         {
@@ -97,11 +92,7 @@ namespace PhoenixAdult.Sites
 
         public async Task<MetadataResult<BaseItem>> Update(int[] siteNum, string[] sceneID, CancellationToken cancellationToken)
         {
-            var result = new MetadataResult<BaseItem>()
-            {
-                Item = new Movie(),
-                People = new List<PersonInfo>(),
-            };
+            var result = new MetadataResult<BaseItem>() { Item = new Movie(), People = new List<PersonInfo>(), };
 
             if (sceneID == null)
             {
@@ -152,6 +143,12 @@ namespace PhoenixAdult.Sites
                 result.Item.AddGenre(genreName);
             }
 
+            var director = sceneData.SelectSingleText("//div[@id='video_director']//td[@class='text']");
+            if (!string.IsNullOrEmpty(director))
+            {
+                result.People.Add(new PersonInfo { Name = director, Type = PersonType.Director, });
+            }
+
             var actorsNode = sceneData.SelectNodesSafe("//div[@id='video_cast']//td[@class='text']//span[@class='cast']//a");
             Logger.Info($"actorsNode = {actorsNode.Count}");
             foreach (var actorLink in actorsNode)
@@ -167,10 +164,7 @@ namespace PhoenixAdult.Sites
                             break;
                     }
 
-                    var actor = new PersonInfo
-                    {
-                        Name = actorName,
-                    };
+                    var actor = new PersonInfo { Name = actorName, Type = PersonType.Actor, };
 
                     result.People.Add(actor);
                 }
@@ -204,11 +198,7 @@ namespace PhoenixAdult.Sites
                     img = $"http:{img}";
                 }
 
-                result.Add(new RemoteImageInfo
-                {
-                    Url = img,
-                    Type = ImageType.Primary,
-                });
+                result.Add(new RemoteImageInfo { Url = img, Type = ImageType.Primary, });
             }
 
             var sceneImages = sceneData.SelectNodesSafe("//div[@class='previewthumbs']/img");
@@ -220,17 +210,9 @@ namespace PhoenixAdult.Sites
                     img = $"http:{img}";
                 }
 
-                result.Add(new RemoteImageInfo
-                {
-                    Url = img,
-                    Type = ImageType.Primary,
-                });
+                result.Add(new RemoteImageInfo { Url = img, Type = ImageType.Primary, });
 
-                result.Add(new RemoteImageInfo
-                {
-                    Url = img,
-                    Type = ImageType.Backdrop,
-                });
+                result.Add(new RemoteImageInfo { Url = img, Type = ImageType.Backdrop, });
             }
 
             return result;
