@@ -153,6 +153,7 @@ namespace PhoenixAdult.Sites
             }
 
             var actorsNode = sceneData.SelectNodesSafe("//div[@id='video_cast']//td[@class='text']//span[@class='cast']//a");
+            Logger.Info($"actorsNode = {actorsNode.Count}");
             foreach (var actorLink in actorsNode)
             {
                 var actorName = actorLink.InnerText;
