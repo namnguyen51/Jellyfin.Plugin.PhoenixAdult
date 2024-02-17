@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using MediaBrowser.Controller.Entities;
@@ -92,7 +93,7 @@ namespace PhoenixAdult.Sites
 
         public async Task<MetadataResult<BaseItem>> Update(int[] siteNum, string[] sceneID, CancellationToken cancellationToken)
         {
-            var result = new MetadataResult<BaseItem>() { Item = new Movie(), People = new List<PersonInfo>(), };
+            var result = new MetadataResult<BaseItem>() { Item = new Movie() };
 
             if (sceneID == null)
             {
@@ -127,7 +128,7 @@ namespace PhoenixAdult.Sites
             var studio = sceneData.SelectSingleText("//div[@id='video_maker']//td[@class='text']");
             if (!string.IsNullOrEmpty(studio))
             {
-                result.Item.AddStudio(studio.Trim());
+                result.Item.AddStudio(ScrubHtml(studio.Trim()));
             }
 
             var date = sceneData.SelectSingleText("//div[@id='video_date']//td[@class='text']");
@@ -140,30 +141,35 @@ namespace PhoenixAdult.Sites
             foreach (var genreLink in genreNode)
             {
                 var genreName = genreLink.InnerText;
-
                 result.Item.AddGenre(genreName);
+            }
+
+            var score = sceneData.SelectSingleText("//div[@id='video_review']//span[@class='score']");
+            if (!string.IsNullOrEmpty(score))
+            {
+                Logger.Info($"score = {score}");
+                score = score.Replace("(", string.Empty).Replace(")", string.Empty);
+                float.TryParse(score, out float scoreF);
+                result.Item.CommunityRating = scoreF;
             }
 
             var label = sceneData.SelectSingleText("//div[@id='video_label']//td[@class='text']");
             if (!string.IsNullOrEmpty(label))
             {
-                Logger.Info($"label = {label}");
-                string[] tags = { label };
+                string[] tags = { ScrubHtml(label.Trim()) };
                 result.Item.Tags = tags;
             }
 
             var director = sceneData.SelectSingleText("//div[@id='video_director']//td[@class='text']");
             if (!string.IsNullOrEmpty(director))
             {
-                Logger.Info($"director = {director}");
-                result.People.Add(new PersonInfo { Name = director, Type = PersonType.Director, });
+                result.AddPerson(new PersonInfo { Name = ScrubHtml(director.Trim()), Type = PersonType.Director, });
             }
 
             var actorsNode = sceneData.SelectNodesSafe("//div[@id='video_cast']//td[@class='text']//span[@class='cast']//a");
             foreach (var actorLink in actorsNode)
             {
                 var actorName = actorLink.InnerText;
-                Logger.Info($"actorName = {actorName}");
                 if (actorName == "----")
                 {
                     continue;
@@ -175,7 +181,7 @@ namespace PhoenixAdult.Sites
                     _ => actorName
                 };
 
-                result.People.Add(new PersonInfo { Name = actorName, Type = PersonType.Actor, });
+                result.AddPerson(new PersonInfo { Name = actorName, Type = PersonType.Actor, });
             }
 
             return result;
@@ -224,6 +230,13 @@ namespace PhoenixAdult.Sites
             }
 
             return result;
+        }
+
+        public static string ScrubHtml(string value)
+        {
+            var step1 = Regex.Replace(value, @"<[^>]+>|&nbsp;", string.Empty).Trim();
+            var step2 = Regex.Replace(step1, @"\s{2,}", " ");
+            return step2;
         }
     }
 }
