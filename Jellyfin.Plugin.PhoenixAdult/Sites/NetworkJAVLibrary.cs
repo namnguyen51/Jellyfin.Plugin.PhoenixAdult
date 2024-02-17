@@ -150,24 +150,22 @@ namespace PhoenixAdult.Sites
             }
 
             var actorsNode = sceneData.SelectNodesSafe("//div[@id='video_cast']//td[@class='text']//span[@class='cast']//a");
-            Logger.Info($"actorsNode = {actorsNode.Count}");
             foreach (var actorLink in actorsNode)
             {
                 var actorName = actorLink.InnerText;
-
-                if (actorName != "----")
+                Logger.Info($"actorName = {actorName}");
+                if (actorName == "----")
                 {
-                    switch (Plugin.Instance.Configuration.JAVActorNamingStyle)
-                    {
-                        case JAVActorNamingStyle.WesternStyle:
-                            actorName = string.Join(" ", actorName.Split().Reverse());
-                            break;
-                    }
-
-                    var actor = new PersonInfo { Name = actorName, Type = PersonType.Actor, };
-
-                    result.People.Add(actor);
+                    continue;
                 }
+
+                actorName = Plugin.Instance.Configuration.JAVActorNamingStyle switch
+                {
+                    JAVActorNamingStyle.WesternStyle => string.Join(" ", actorName.Split().Reverse()),
+                    _ => actorName
+                };
+
+                result.People.Add(new PersonInfo { Name = actorName, Type = PersonType.Actor, });
             }
 
             return result;
