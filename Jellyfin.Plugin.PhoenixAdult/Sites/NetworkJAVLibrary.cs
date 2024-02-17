@@ -100,88 +100,97 @@ namespace PhoenixAdult.Sites
                 return result;
             }
 
-            var sceneURL = Helper.Decode(sceneID[0]);
-            if (!sceneURL.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            for (int i = 0; i < sceneID.Length; i++)
             {
-                sceneURL = Helper.GetSearchBaseURL(siteNum) + sceneURL;
-            }
-
-            var sceneData = await HTML.ElementFromURL(sceneURL, cancellationToken).ConfigureAwait(false);
-
-            result.Item.ExternalId = sceneURL;
-
-            var javID = sceneData.SelectSingleText("//div[@id='video_id']//td[@class='text']");
-            var title = sceneData.SelectSingleText("//div[@id='video_title']//h3");
-            if (!string.IsNullOrEmpty(javID))
-            {
-                string upperId = javID.ToUpperInvariant();
-                result.Item.Name = upperId;
-                title = title.Replace(javID, string.Empty, StringComparison.OrdinalIgnoreCase);
-                result.Item.OriginalTitle = title;
-                result.Item.Tagline = title;
-            }
-            else
-            {
-                result.Item.Name = title;
-            }
-
-            var studio = sceneData.SelectSingleText("//div[@id='video_maker']//td[@class='text']");
-            if (!string.IsNullOrEmpty(studio))
-            {
-                result.Item.AddStudio(ScrubHtml(studio.Trim()));
-            }
-
-            var date = sceneData.SelectSingleText("//div[@id='video_date']//td[@class='text']");
-            if (DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sceneDateObj))
-            {
-                result.Item.PremiereDate = sceneDateObj;
-            }
-
-            var genreNode = sceneData.SelectNodesSafe("//div[@id='video_genres']//td[@class='text']//a");
-            foreach (var genreLink in genreNode)
-            {
-                var genreName = genreLink.InnerText;
-                result.Item.AddGenre(genreName);
-            }
-
-            var score = sceneData.SelectSingleText("//div[@id='video_review']//span[@class='score']");
-            if (!string.IsNullOrEmpty(score))
-            {
-                Logger.Info($"score = {score}");
-                score = score.Replace("(", string.Empty).Replace(")", string.Empty);
-                float.TryParse(score, out float scoreF);
-                result.Item.CommunityRating = scoreF;
-            }
-
-            var label = sceneData.SelectSingleText("//div[@id='video_label']//td[@class='text']");
-            if (!string.IsNullOrEmpty(label))
-            {
-                string[] tags = { ScrubHtml(label.Trim()) };
-                result.Item.Tags = tags;
-            }
-
-            var director = sceneData.SelectSingleText("//div[@id='video_director']//td[@class='text']");
-            if (!string.IsNullOrEmpty(director))
-            {
-                result.AddPerson(new PersonInfo { Name = ScrubHtml(director.Trim()), Type = PersonType.Director, });
-            }
-
-            var actorsNode = sceneData.SelectNodesSafe("//div[@id='video_cast']//td[@class='text']//span[@class='cast']//a");
-            foreach (var actorLink in actorsNode)
-            {
-                var actorName = actorLink.InnerText;
-                if (actorName == "----")
+                var sceneUrl = Helper.Decode(sceneID[i]);
+                if (!sceneUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    continue;
+                    sceneUrl = Helper.GetSearchBaseURL(siteNum) + sceneUrl;
                 }
 
-                actorName = Plugin.Instance.Configuration.JAVActorNamingStyle switch
-                {
-                    JAVActorNamingStyle.WesternStyle => string.Join(" ", actorName.Split().Reverse()),
-                    _ => actorName
-                };
+                var sceneData = await HTML.ElementFromURL(sceneUrl, cancellationToken).ConfigureAwait(false);
 
-                result.AddPerson(new PersonInfo { Name = actorName, Type = PersonType.Actor, });
+                result.Item.ExternalId = sceneUrl;
+
+                var javID = sceneData.SelectSingleText("//div[@id='video_id']//td[@class='text']");
+                var title = sceneData.SelectSingleText("//div[@id='video_title']//h3");
+                var isBluRayDisk = title.Contains("Blu-ray Disc");
+                if (!string.IsNullOrEmpty(javID))
+                {
+                    string upperId = javID.ToUpperInvariant();
+                    result.Item.Name = upperId;
+                    title = title.Replace(javID, string.Empty, StringComparison.OrdinalIgnoreCase);
+                    result.Item.OriginalTitle = title;
+                    result.Item.Tagline = title;
+                }
+                else
+                {
+                    result.Item.Name = title;
+                }
+
+                var studio = sceneData.SelectSingleText("//div[@id='video_maker']//td[@class='text']");
+                if (!string.IsNullOrEmpty(studio))
+                {
+                    result.Item.AddStudio(ScrubHtml(studio.Trim()));
+                }
+
+                var date = sceneData.SelectSingleText("//div[@id='video_date']//td[@class='text']");
+                if (DateTime.TryParseExact(date, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out var sceneDateObj))
+                {
+                    result.Item.PremiereDate = sceneDateObj;
+                }
+
+                var genreNode = sceneData.SelectNodesSafe("//div[@id='video_genres']//td[@class='text']//a");
+                foreach (var genreLink in genreNode)
+                {
+                    var genreName = genreLink.InnerText;
+                    result.Item.AddGenre(genreName);
+                }
+
+                var score = sceneData.SelectSingleText("//div[@id='video_review']//span[@class='score']");
+                if (!string.IsNullOrEmpty(score))
+                {
+                    Logger.Info($"score = {score}");
+                    score = score.Trim('(', ')');
+                    float.TryParse(score, out float scoreF);
+                    result.Item.CommunityRating = scoreF;
+                }
+
+                var label = sceneData.SelectSingleText("//div[@id='video_label']//td[@class='text']");
+                if (!string.IsNullOrEmpty(label))
+                {
+                    string[] tags = { ScrubHtml(label.Trim()) };
+                    result.Item.Tags = tags;
+                }
+
+                var director = sceneData.SelectSingleText("//div[@id='video_director']//td[@class='text']");
+                if (!string.IsNullOrEmpty(director))
+                {
+                    result.AddPerson(new PersonInfo { Name = ScrubHtml(director.Trim()), Type = PersonType.Director, });
+                }
+
+                var actorsNode = sceneData.SelectNodesSafe("//div[@id='video_cast']//td[@class='text']//span[@class='cast']//a");
+                foreach (var actorLink in actorsNode)
+                {
+                    var actorName = actorLink.InnerText;
+                    if (actorName == "----")
+                    {
+                        continue;
+                    }
+
+                    actorName = Plugin.Instance.Configuration.JAVActorNamingStyle switch
+                    {
+                        JAVActorNamingStyle.WesternStyle => string.Join(" ", actorName.Split().Reverse()),
+                        _ => actorName
+                    };
+
+                    result.AddPerson(new PersonInfo { Name = actorName, Type = PersonType.Actor, });
+                }
+
+                if (!isBluRayDisk)
+                {
+                    break;
+                }
             }
 
             return result;
@@ -232,7 +241,7 @@ namespace PhoenixAdult.Sites
             return result;
         }
 
-        public static string ScrubHtml(string value)
+        private static string ScrubHtml(string value)
         {
             var step1 = Regex.Replace(value, @"<[^>]+>|&nbsp;", string.Empty).Trim();
             var step2 = Regex.Replace(step1, @"\s{2,}", " ");
