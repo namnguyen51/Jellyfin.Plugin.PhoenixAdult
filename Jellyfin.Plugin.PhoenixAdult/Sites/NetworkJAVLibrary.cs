@@ -114,9 +114,10 @@ namespace PhoenixAdult.Sites
             if (!string.IsNullOrEmpty(javID))
             {
                 string upperId = javID.ToUpperInvariant();
-                result.Item.OriginalTitle = upperId;
                 result.Item.Name = upperId;
-                result.Item.Tagline = title.Replace(javID, string.Empty, StringComparison.OrdinalIgnoreCase);
+                title = title.Replace(javID, string.Empty, StringComparison.OrdinalIgnoreCase);
+                result.Item.OriginalTitle = title;
+                result.Item.Tagline = title;
             }
             else
             {
@@ -126,7 +127,7 @@ namespace PhoenixAdult.Sites
             var studio = sceneData.SelectSingleText("//div[@id='video_maker']//td[@class='text']");
             if (!string.IsNullOrEmpty(studio))
             {
-                result.Item.AddStudio(studio);
+                result.Item.AddStudio(studio.Trim());
             }
 
             var date = sceneData.SelectSingleText("//div[@id='video_date']//td[@class='text']");
@@ -143,9 +144,18 @@ namespace PhoenixAdult.Sites
                 result.Item.AddGenre(genreName);
             }
 
+            var label = sceneData.SelectSingleText("//div[@id='video_label']//td[@class='text']");
+            if (!string.IsNullOrEmpty(label))
+            {
+                Logger.Info($"label = {label}");
+                string[] tags = { label };
+                result.Item.Tags = tags;
+            }
+
             var director = sceneData.SelectSingleText("//div[@id='video_director']//td[@class='text']");
             if (!string.IsNullOrEmpty(director))
             {
+                Logger.Info($"director = {director}");
                 result.People.Add(new PersonInfo { Name = director, Type = PersonType.Director, });
             }
 
